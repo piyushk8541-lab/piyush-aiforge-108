@@ -1,0 +1,66 @@
+name: Apply Special Offer
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-offer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply first-50-customer offer
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('js/app.js')
+          s = p.read_text(encoding='utf-8')
+
+          if 'OFFERS VALID FOR 1ST 50 CUSTOMERS ONLY' in s:
+              print('Offer already applied; nothing to do.')
+              raise SystemExit(0)
+
+          marker = "const money = (n) => '\\u20B9' + n.toLocaleString('en-IN');"
+          addition = marker + "\nconst DISCOUNT_PCT = [10, 20, 30];\nconst discountedPrice = (price, tier) => Math.round(price * (1 - DISCOUNT_PCT[tier] / 100));\nconst offerPriceHtml = (price, tier) => '<span class=\"old-price\" style=\"text-decoration:line-through;opacity:.58;margin-right:6px\">' + money(price) + '</span><span class=\"discount-badge\" style=\"font-size:.72em;font-weight:800;margin-right:6px\">' + DISCOUNT_PCT[tier] + '% OFF</span><span class=\"new-price\" style=\"font-weight:800\">' + money(discountedPrice(price, tier)) + '</span>';"
+          if marker not in s:
+              raise SystemExit('Pricing marker not found')
+          s = s.replace(marker, addition, 1)
+
+          old_desktop = "'<span class=\"plan-price\">' + money(cat.tiers[i].price) + ' <small>one-time</small></span>'"
+          new_desktop = "'<span class=\"plan-price\">' + offerPriceHtml(cat.tiers[i].price, i) + ' <small>one-time</small></span>'"
+          if old_desktop not in s:
+              raise SystemExit('Desktop price renderer not found')
+          s = s.replace(old_desktop, new_desktop, 1)
+
+          old_mobile = "'<span class=\"plan-price\">' + money(pr) + '</span>'"
+          new_mobile = "'<span class=\"plan-price\">' + offerPriceHtml(pr, i) + '</span>'"
+          if old_mobile not in s:
+              raise SystemExit('Mobile price renderer not found')
+          s = s.replace(old_mobile, new_mobile, 1)
+
+          old_build = "function buildPanels() {\n  const wrap = $('#catPanels');"
+          new_build = "function buildPanels() {\n  const wrap = $('#catPanels');\n  const offer = document.createElement('div');\n  offer.setAttribute('role', 'note');\n  offer.style.cssText = 'margin:0 0 18px;padding:14px 18px;border:1px solid rgba(245,196,82,.45);border-radius:14px;background:linear-gradient(135deg,rgba(245,196,82,.12),rgba(56,189,248,.08));text-align:center;font-weight:800;letter-spacing:.02em;';\n  offer.innerHTML = '🔥 SPECIAL OFFER — <span style=\"text-transform:uppercase\">OFFERS VALID FOR 1ST 50 CUSTOMERS ONLY</span><br><small style=\"font-weight:600;opacity:.82\">Basic 10% OFF · Standard 20% OFF · Pro 30% OFF</small>';\n  wrap.parentNode.insertBefore(offer, wrap);"
+          if old_build not in s:
+              raise SystemExit('buildPanels marker not found')
+          s = s.replace(old_build, new_build, 1)
+
+          p.write_text(s, encoding='utf-8')
+          print('Special offer applied successfully.')
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/app.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Add first-50-customer pricing discounts"
+            git push
+          fi
