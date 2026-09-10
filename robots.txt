@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://piyush-aiforge-108.vercel.app/sitemap.xml
