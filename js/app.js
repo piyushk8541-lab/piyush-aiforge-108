@@ -21,6 +21,9 @@ const TIER_META = [
 const POPULAR_TIER = 1; // index of the "Popular" tier in every category
 
 const money = (n) => '\u20B9' + n.toLocaleString('en-IN');
+const DISCOUNT_PCT = [10, 20, 30];
+const discountedPrice = (price, tier) => Math.round(price * (1 - DISCOUNT_PCT[tier] / 100));
+const offerPriceHtml = (price, tier) => '<span class="old-price" style="text-decoration:line-through;opacity:.58;margin-right:6px">' + money(price) + '</span><span class="discount-badge" style="font-size:.72em;font-weight:800;margin-right:6px">' + DISCOUNT_PCT[tier] + '% OFF</span><span class="new-price" style="font-weight:800">' + money(discountedPrice(price, tier)) + '</span>';
 
 /* tier prices are kept separately (the feature table has no price row) */
 const PRICING_RAW = {
@@ -155,7 +158,7 @@ function buildDesktopTable(cat) {
       (i === cat.popular ? '<span class="plan-pop">Popular</span>' : '') +
       '<span class="plan-name">' + t.label + '</span>' +
       '<span class="plan-sub">' + cat.tiers[i].blurb + '</span>' +
-      '<span class="plan-price">' + money(cat.tiers[i].price) + ' <small>one-time</small></span>' +
+      '<span class="plan-price">' + offerPriceHtml(cat.tiers[i].price, i) + ' <small>one-time</small></span>' +
       '<span class="plan-once">No hidden charges</span>' +
       chooseButtonHtml(cat, i) +
     '</th>').join('') + '</tr>';
@@ -183,7 +186,7 @@ function buildMobileCards(cat) {
     return '<div class="plan-card' + (i === cat.popular ? ' is-popular' : '') + '" style="--acc:' + t.acc + '">' +
       '<div class="plan-card-head">' +
         '<span class="plan-tag">' + t.label + '</span>' +
-        '<span class="plan-price">' + money(pr) + '</span>' +
+        '<span class="plan-price">' + offerPriceHtml(pr, i) + '</span>' +
       '</div>' +
       '<span class="plan-once">one-time &middot; no hidden charges</span>' +
       '<span class="plan-sub">' + cat.tiers[i].blurb + '</span>' +
@@ -195,6 +198,11 @@ function buildMobileCards(cat) {
 
 function buildPanels() {
   const wrap = $('#catPanels');
+  const offer = document.createElement('div');
+  offer.setAttribute('role', 'note');
+  offer.style.cssText = 'margin:0 0 18px;padding:14px 18px;border:1px solid rgba(245,196,82,.45);border-radius:14px;background:linear-gradient(135deg,rgba(245,196,82,.12),rgba(56,189,248,.08));text-align:center;font-weight:800;letter-spacing:.02em;';
+  offer.innerHTML = '🔥 SPECIAL OFFER — <span style="text-transform:uppercase">OFFERS VALID FOR 1ST 50 CUSTOMERS ONLY</span><br><small style="font-weight:600;opacity:.82">Basic 10% OFF · Standard 20% OFF · Pro 30% OFF</small>';
+  wrap.parentNode.insertBefore(offer, wrap);
   PRICING.forEach((cat) => {
     cat.tiers.forEach((t, i) => { t.price = PRICING_RAW[cat.id][i]; });
     const panel = document.createElement('div');
