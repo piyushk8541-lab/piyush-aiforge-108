@@ -382,7 +382,7 @@ function choosePlan(catId, tierIdx) {
   const cat = catById(catId);
   state.catId = catId;
   state.tier = tierIdx;
-  state.price = cat.tiers[tierIdx].price;
+  state.price = discountedPrice(cat.tiers[tierIdx].price, tierIdx);
   state.catLabel = cat.label;
   state.tierLabel = TIER_META[tierIdx].label;
   syncAllChoiceButtons();
